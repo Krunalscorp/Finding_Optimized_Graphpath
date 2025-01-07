@@ -1,0 +1,150 @@
+# It's working for A* and for Random Hill climb only the hostel visit produces a path because of max_restart and max_steps. 
+
+import heapq
+import random
+import time
+import sys
+from itertools import permutations
+
+# Goal-Checking Function
+def is_goal(node, goal):
+    """
+    Checks if the current node is the goal node.
+    """
+    return node == goal
+
+# Initial Setup
+def get_user_input(graph):
+    print("Available locations: ", list(graph.keys()))
+    start = input("Enter the starting location: ").strip()
+    end = "Exit"  # Set goal as "Exit"
+    return start, end
+
+# Transition & Cost Matrix
+campus_map = {
+    "Admission Office": {"Hostel Office": 2, "Library": 4},
+    "Hostel Office": {"Admission Office": 2, "Hostel Visit": 2, "Canteen": 6, "Library": 4},
+    "Hostel Visit": {"Hostel Office": 2, "Canteen": 6, "Exit": 4},
+    "Canteen": {"Hostel Visit": 6, "Hostel Office": 6, "Library": 7, "Dep't Visit": 2, "Exit": 8},
+    "Dep't Visit": {"Canteen": 2, "Library": 3, "Exit": 5},
+    "Library": {"Admission Office": 4, "Canteen": 7, "Dep't Visit": 3, "Hostel Office": 4},
+    "Exit": {"Dep't Visit": 5, "Canteen": 8, "Hostel Visit": 4}
+}
+
+# Transition Model/Successor Function
+def get_successors(graph, node):
+    """
+    Returns the successors of a given node as a dictionary of neighbors and costs.
+    """
+    return graph.get(node, {})
+
+# Heuristic Function
+def heuristic(node, goal):
+    """
+    A heuristic function to estimate the cost from the current node to the goal.
+    Currently, it returns 0 for uniform cost search.
+    """
+    return 0
+
+# A* Algorithm for TSP
+def a_star_tsp(graph, start, goal, nodes_to_visit):
+    best_path = None
+    best_cost = float('inf')
+    
+    # Generate all permutations of the nodes to visit
+    node_permutations = permutations(nodes_to_visit)
+    
+    for perm in node_permutations:
+        # Include start and goal in the path
+        path = [start] + list(perm) + [goal]
+        total_cost = 0
+        valid_path = True
+        
+        # Calculate the total cost for this path
+        for i in range(len(path) - 1):
+            current_node = path[i]
+            next_node = path[i + 1]
+            cost = graph.get(current_node, {}).get(next_node, float('inf'))
+            if cost == float('inf'):
+                valid_path = False
+                break
+            total_cost += cost
+        
+        # If path is valid and cost is the best so far, update the best path
+        if valid_path and total_cost < best_cost:
+            best_cost = total_cost
+            best_path = path
+    
+    return best_path, best_cost
+
+# Random Restart Hill Climbing for TSP
+def hill_climbing_tsp(graph, start, goal, nodes_to_visit, max_restarts=10, max_steps=50):
+    best_path = None
+    best_cost = float('inf')
+    random.seed(42)
+    
+ 
+
+# Time and Space Complexity Evaluation
+# Random Restart Hill Climbing for TSP (Modified)
+def hill_climbing_tsp(graph, start, goal, nodes_to_visit, max_restarts=20, max_steps=100):
+    best_path = None
+    best_cost = float('inf')
+    random.seed(42)
+    
+    # Generate all permutations of the nodes to visit
+    node_permutations = list(permutations(nodes_to_visit))
+    
+    for _ in range(max_restarts):
+        # Randomly choose a permutation to start with
+        perm = random.choice(node_permutations)
+        path = [start] + list(perm) + [goal]
+        total_cost = 0
+        
+        # Calculate the total cost for this path
+        valid_path = True
+        for i in range(len(path) - 1):
+            current_node = path[i]
+            next_node = path[i + 1]
+            cost = graph.get(current_node, {}).get(next_node, None)  # Ensure no missing connections
+            if cost is None:  # If no connection, the path is invalid
+                valid_path = False
+                break
+            total_cost += cost
+        
+        # If valid and cost is better, update the best path
+        if valid_path and total_cost < best_cost:
+            best_cost = total_cost
+            best_path = path
+    
+    return best_path, best_cost
+
+
+# Main Execution
+if __name__ == "__main__":
+    start_location, goal_location = get_user_input(campus_map)
+
+    # Nodes to visit (excluding the start and goal)
+    nodes_to_visit = [node for node in campus_map.keys() if node != start_location and node != goal_location]
+
+    print("\nRunning A* Algorithm (TSP)...")
+    optimal_path, optimal_cost = a_star_tsp(campus_map, start_location, goal_location, nodes_to_visit)
+    if optimal_path:
+        print(f"Optimal Path (A*): {optimal_path}, Total Cost: {optimal_cost}")
+    else:
+        print("No path found for A*.")
+
+    print("\nRunning Random Restart Hill Climbing (TSP)...")
+    best_path, best_cost = hill_climbing_tsp(campus_map, start_location, goal_location, nodes_to_visit)
+    if best_path:
+        print(f"Best Path (Hill Climbing): {best_path}, Cost: {best_cost}")
+    else:
+        print("No valid path found for Hill Climbing.")
+
+    print("\nEvaluating A* Algorithm...")
+    _, a_star_cost, a_star_time, a_star_memory = evaluate_algorithm(a_star_tsp, campus_map, start_location, goal_location, nodes_to_visit)
+    print(f"A* - Time: {a_star_time:.4f}s, Memory: {a_star_memory / 1024:.2f} KB, Cost: {a_star_cost}")
+
+    print("\nEvaluating Hill Climbing Algorithm...")
+    _, hill_climbing_cost, hill_climbing_time, hill_climbing_memory = evaluate_algorithm(hill_climbing_tsp, campus_map, start_location, goal_location, nodes_to_visit)
+    print(f"Hill Climbing - Time: {hill_climbing_time:.4f}s, Memory: {hill_climbing_memory / 1024:.2f} KB, Cost: {hill_climbing_cost}")
